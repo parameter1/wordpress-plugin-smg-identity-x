@@ -18,6 +18,9 @@ function identityx_options() {
     wp_die(__('You do not have sufficient permissions to access this page.'));
   }
 
+  // Ensure rewrite rules are flushed!
+  flush_rewrite_rules();
+
   echo "<style type=\"text/css\">.idx_form .row {padding-bottom: 1rem;} .idx_form .row label > input {display: block; margin-top: .25rem; min-width: 300px;}</style>";
 
   foreach (['identityx_apiHost', 'identityx_apiKey'] as $key) {
