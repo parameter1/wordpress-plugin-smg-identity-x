@@ -3,7 +3,7 @@
  * Plugin Name: IdentityX
  * Plugin URI: https://github.com/parameter1/smg-idx-wordpress/tree/master
  * Description: A plugin providing authentication support via the IdentityX platform
- * Version: 0.0.1
+ * Version: 0.0.2
  * Author: Parameter1 LLC
  * Author URI: https://parameter1.com
  */
@@ -13,8 +13,9 @@ require_once(__DIR__.'/identity-x/admin.php');
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
 
-add_action('profile_update', function ($user_id, $old_user_data, $userdata) use ($apiKey, $apiHost) {
+add_action('xprofile_updated_profile', function ($user_id) use ($apiKey, $apiHost) {
   if (!$apiKey) return;
+  $userdata = BP_XProfile_ProfileData::get_all_for_user($user_id);
   $ch = curl_init(sprintf('%s/api/update-identityx-user', $apiHost));
   curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['user' => $userdata]));
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -22,7 +23,7 @@ add_action('profile_update', function ($user_id, $old_user_data, $userdata) use 
     "content-type: application/json",
     "authorization: Bearer " . base64_encode($apiKey),
   ]);
-  $result = curl_exec($ch);
+  curl_exec($ch);
   curl_close($ch);
 }, 10, 3);
 
