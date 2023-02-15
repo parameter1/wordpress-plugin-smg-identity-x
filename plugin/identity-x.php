@@ -15,6 +15,7 @@ $apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
 
 add_action('xprofile_updated_profile', function ($user_id) use ($apiKey, $apiHost) {
   if (!$apiKey) return;
+  $user = get_user_by('ID', $user_id);
   $data = BP_XProfile_ProfileData::get_all_for_user($user_id);
   $userdata = array_reduce(array_keys($data), function ($obj, $key) use ($data) {
     $field = $data[$key];
@@ -35,7 +36,10 @@ add_action('xprofile_updated_profile', function ($user_id) use ($apiKey, $apiHos
   }, []);
 
   $ch = curl_init(sprintf('%s/api/update-identityx-user', $apiHost));
-  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['user' => $userdata]));
+  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'user'    => $user,
+    'profile' => $userdata,
+  ]));
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "content-type: application/json",
