@@ -13,13 +13,16 @@ require_once(__DIR__.'/identity-x/hook-handler.php');
 
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
-$awsKey = get_option('identityx_aws_access_key_id');
-$awsSecret = get_option('identityx_aws_secret_access_key');
+$awsConfig = [
+  get_option('identityx_aws_access_key_id'),
+  get_option('identityx_aws_secret_access_key'),
+  get_option('identityx_aws_region', 'us-east-2')
+];
 
 // Do nothing if no keys are present!
 if (!$apiKey) return;
 
-$handler = new IdentityXHooks($apiKey, $apiHost, $awsKey, $awsSecret);
+$handler = new IdentityXHooks($apiKey, $apiHost, $awsConfig);
 
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 

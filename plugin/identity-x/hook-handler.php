@@ -1,62 +1,62 @@
 <?php
 
-// require_once(__DIR__.'/cloudwatch.php');
-
-use InvalidArgumentException;
+require_once(__DIR__.'/cloudwatch.php');
 
 class IdentityXHooks {
   private $apiKey;
   private $apiHost;
   private $cloudwatch;
 
-  public function __construct($apiKey, $apiHost, $awsKey = null, $awsSecret = null) {
+  public function __construct($apiKey, $apiHost, array $awsConfig = []) {
     $this->apiHost = $apiHost;
     $this->apiKey = $apiKey;
-    if (!$awsKey || $awsSecret) {
-      trigger_error('IdentityX: AWS credentials are not present, error reporting disabled.', E_USER_WARNING);
-    } else {
-      $this->cloudwatch = new IdentityXCloudWatch($awsKey, $awsSecret);
-    }
+    list($awsKey, $awsSecret, $awsRegion) = $awsConfig;
+    $this->cloudwatch = new IdentityXCloudWatch($awsKey, $awsSecret, $awsRegion);
   }
 
   /**
    * Sends outgoing webhook to IdentityX when user details change
    */
   public function dispatch($user_id) {
-    // set role for full profile when everything is updated ** if not already set **
-    // @TODO avoid recursion!! Only dispatch hooks if changes actually happened.
-    $user = get_user_by('ID', $user_id);
-    $data = BP_XProfile_ProfileData::get_all_for_user($user_id);
-    $userdata = array_reduce(array_keys($data), function ($obj, $key) use ($data) {
-      $field = $data[$key];
-      switch (gettype($field)) {
-        case 'array':
-          if ($field['field_type'] === 'multiselectbox') {
-            $obj[$key] = unserialize($field['field_data']);
-          } else {
-            $obj[$key] = $field['field_data'];
-          }
-          break;
+    try {
+      // set role for full profile when everything is updated ** if not already set **
+      // @TODO avoid recursion!! Only dispatch hooks if changes actually happened.
+      $user = get_user_by('ID', $user_id);
+      $data = BP_XProfile_ProfileData::get_all_for_user($user_id);
+      $userdata = array_reduce(array_keys($data), function ($obj, $key) use ($data) {
+        $field = $data[$key];
+        switch (gettype($field)) {
+          case 'array':
+            if ($field['field_type'] === 'multiselectbox') {
+              $obj[$key] = unserialize($field['field_data']);
+            } else {
+              $obj[$key] = $field['field_data'];
+            }
+            break;
 
-        default:
-          $obj[$key] = $field;
-          break;
-      }
-      return $obj;
-    }, []);
+          default:
+            $obj[$key] = $field;
+            break;
+        }
+        return $obj;
+      }, []);
 
-    $ch = curl_init(sprintf('%s/api/update-identityx-user', $this->apiHost));
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-      'user'    => $user,
-      'profile' => $userdata,
-    ]));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-      "content-type: application/json",
-      "authorization: Bearer " . base64_encode($this->apiKey),
-    ]);
-    curl_exec($ch);
-    curl_close($ch);
+      $ch = curl_init(sprintf('%s/api/update-identityx-user', $this->apiHost));
+      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+        'user'    => $user,
+        'profile' => $userdata,
+      ]));
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "content-type: application/json",
+        "authorization: Bearer " . base64_encode($this->apiKey),
+      ]);
+      curl_exec($ch);
+      curl_close($ch);
+      $this->cloudwatch->success('dispatch');
+    } catch (\Exception $e) {
+      $this->cloudwatch->failure('dispatch', $e);
+    }
   }
 
   /**
@@ -136,31 +136,30 @@ class IdentityXHooks {
     try {
       // @todo verify api key
       $payload = json_decode(file_get_contents('php://input'), true);
-      if (!$payload['email']) throw new InvalidArgumentException('Email must be specified.');
+      if (!array_key_exists('email', $payload) || !$payload['email']) throw new InvalidArgumentException('Email must be specified.');
       $found = get_user_by('email', $payload['email']);
       $user = $found ? updateUser($payload, $found) : createUser($payload);
 
-      // @todo log success
       echo json_encode([
         'name'    => $type,
         'payload' => $payload,
         'user'    => $user->ID,
       ]);
-
+      $this->cloudwatch->success('handle');
     } catch (\InvalidArgumentException $e) {
-      // @todo log user error
       http_response_code(400);
       echo json_encode([
         'name' => $type,
         'error' => $e->getMessage(),
       ]);
+      $this->cloudwatch->failure('handle', $e->getMessage());
     } catch (\Exception $e) {
-      // @todo log server error
       http_response_code(500);
       echo json_encode([
         'name' => $type,
         'error' => $e->getMessage(),
       ]);
+      $this->cloudwatch->failure('handle', $e->getMessage());
     }
     // End the response
     exit;
