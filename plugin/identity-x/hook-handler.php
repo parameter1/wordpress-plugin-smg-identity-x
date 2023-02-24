@@ -20,6 +20,46 @@ class IdentityXHooks {
   }
 
   /**
+   * Sends outgoing webhook to IdentityX when user details change
+   */
+  public function dispatch($user_id) {
+    // set role for full profile when everything is updated ** if not already set **
+    // @TODO avoid recursion!! Only dispatch hooks if changes actually happened.
+    $user = get_user_by('ID', $user_id);
+    $data = BP_XProfile_ProfileData::get_all_for_user($user_id);
+    $userdata = array_reduce(array_keys($data), function ($obj, $key) use ($data) {
+      $field = $data[$key];
+      switch (gettype($field)) {
+        case 'array':
+          if ($field['field_type'] === 'multiselectbox') {
+            $obj[$key] = unserialize($field['field_data']);
+          } else {
+            $obj[$key] = $field['field_data'];
+          }
+          break;
+
+        default:
+          $obj[$key] = $field;
+          break;
+      }
+      return $obj;
+    }, []);
+
+    $ch = curl_init(sprintf('%s/api/update-identityx-user', $this->apiHost));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+      'user'    => $user,
+      'profile' => $userdata,
+    ]));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+      "content-type: application/json",
+      "authorization: Bearer " . base64_encode($this->apiKey),
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
+  }
+
+  /**
    * Handles incoming requests to update user data from IdentityX
    */
   public function handle($wp_query) {
