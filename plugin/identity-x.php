@@ -9,12 +9,18 @@
  */
 
 require_once(__DIR__.'/identity-x/admin.php');
+require_once(__DIR__.'/identity-x/hook-handler.php');
 
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
+$awsKey = get_option('identityx_aws_access_key_id');
+$awsSecret = get_option('identityx_aws_secret_access_key');
+$handler = new IdentityXHooks($apiKey, $apiHost, $awsKey, $awsSecret);
 
 add_action('xprofile_updated_profile', function ($user_id) use ($apiKey, $apiHost) {
   if (!$apiKey) return;
+  // set role for full profile when everything is updated ** if not already set **
+  // @TODO avoid recursion!! Only dispatch hooks if changes actually happened.
   $user = get_user_by('ID', $user_id);
   $data = BP_XProfile_ProfileData::get_all_for_user($user_id);
   $userdata = array_reduce(array_keys($data), function ($obj, $key) use ($data) {
@@ -60,16 +66,13 @@ add_action('init', function() use ($pattern) {
 // Flush rewrite rules if the route doesn't exist yet.
 add_action('wp_loaded', function () use ($pattern) {
   $rules = get_option('rewrite_rules');
-  if (!isset($rules[$pattern])) {
-    flush_rewrite_rules();
-  }
+  if (!isset($rules[$pattern])) flush_rewrite_rules();
 });
 
 // The hook handler
-add_action('template_redirect', function () {
+add_action('template_redirect', function () use ($handler) {
   global $wp_query;
   if (!isset($wp_query->query_vars['idxHook'])) return;
   // include the hook handler
-  require_once(__DIR__.'/identity-x/hook-handler.php');
-  exit;
+  $handler->handle($wp_query);
 });
