@@ -23,7 +23,13 @@ function identityx_options() {
 
   echo "<style type=\"text/css\">.idx_form .row {padding-bottom: 1rem;} .idx_form .row label > input {display: block; margin-top: .25rem; min-width: 300px;}</style>";
 
-  foreach (['identityx_apiHost', 'identityx_apiKey'] as $key) {
+  foreach ([
+    'identityx_apiHost',
+    'identityx_apiKey',
+    'identityx_aws_access_key_id',
+    'identityx_aws_secret_access_key',
+    'identityx_aws_region'
+    ] as $key) {
     if (isset($_POST[$key])) update_option($key, $_POST[$key]);
   }
   if (!empty($_POST)) {
@@ -32,6 +38,9 @@ function identityx_options() {
 
   $apiHost = get_option('identityx_apiHost');
   $apiKey = get_option('identityx_apiKey');
+  $aws_access_key_id = get_option('identityx_aws_access_key_id');
+  $aws_secret_access_key = get_option('identityx_aws_secret_access_key');
+  $aws_region = get_option('identityx_aws_region', 'us-east-2');
 
   echo <<<EOT
 
@@ -54,6 +63,25 @@ function identityx_options() {
           <label>
             <strong>API key</strong>
             <input type="text" value="{$apiKey}" name="identityx_apiKey" placeholder="f000fd-fd0dff0d-ffd0d0df" />
+          </label>
+        </div>
+        <p class="lead">AWS Metric reporting</p>
+        <div class="row">
+          <label>
+            <strong>AWS Access Key</strong>
+            <input type="text" value="{$aws_access_key_id}" name="identityx_aws_access_key_id" placeholder="AKIA..." />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            <strong>AWS Secret Access Key</strong>
+            <input type="text" value="{$aws_secret_access_key}" name="identityx_aws_secret_access_key" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            <strong>AWS Region</strong>
+            <input type="text" value="{$aws_region}" name="identityx_aws_region" placeholder="us-east-2" />
           </label>
         </div>
         <div class="row">
