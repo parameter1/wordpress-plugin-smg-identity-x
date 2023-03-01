@@ -19,32 +19,12 @@ class IdentityXHooks {
    */
   public function dispatch($user_id) {
     try {
-      // set role for full profile when everything is updated ** if not already set **
-      // @TODO avoid recursion!! Only dispatch hooks if changes actually happened.
+      // @todo set role for full profile when everything is updated ** if not already set **
       $user = get_user_by('ID', $user_id);
-      $data = BP_XProfile_ProfileData::get_all_for_user($user_id);
-      $userdata = array_reduce(array_keys($data), function ($obj, $key) use ($data) {
-        $field = $data[$key];
-        switch (gettype($field)) {
-          case 'array':
-            if ($field['field_type'] === 'multiselectbox') {
-              $obj[$key] = unserialize($field['field_data']);
-            } else {
-              $obj[$key] = $field['field_data'];
-            }
-            break;
-
-          default:
-            $obj[$key] = $field;
-            break;
-        }
-        return $obj;
-      }, []);
-
-      $ch = curl_init(sprintf('%s/api/update-identityx-user', $this->apiHost));
+      $ch = curl_init(sprintf('%s/prod/enqueue-idx', $this->apiHost));
       curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        'user'    => $user,
-        'profile' => $userdata,
+        'id' => $user_id,
+        'email' => $user->user_email,
       ]));
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
       curl_setopt($ch, CURLOPT_HTTPHEADER, [
