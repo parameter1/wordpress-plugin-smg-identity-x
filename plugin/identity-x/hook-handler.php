@@ -29,7 +29,7 @@ class IdentityXHooks {
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
       curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "content-type: application/json",
-        "authorization: Bearer " . base64_encode($this->apiKey),
+        sprintf("x-api-key: %s", $this->apiKey),
       ]);
       curl_exec($ch);
       curl_close($ch);
