@@ -25,3 +25,4 @@ node_modules/
 reference
 plugins
 themes
+.DS_Store

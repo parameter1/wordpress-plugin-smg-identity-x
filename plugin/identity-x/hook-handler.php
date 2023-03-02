@@ -1,6 +1,6 @@
 <?php
 
-require_once(__DIR__.'/cloudwatch.php');
+require_once(__DIR__.'/client-cloudwatch.php');
 
 class IdentityXHooks {
   private $apiKey;
@@ -13,7 +13,7 @@ class IdentityXHooks {
     $this->apiKey = $apiKey;
     $this->queueUrl = $queueUrl;
     list($awsKey, $awsSecret, $awsRegion) = $awsConfig;
-    $this->cloudwatch = new IdentityXCloudWatch($awsKey, $awsSecret, $awsRegion);
+    $this->cloudwatch = new IdentityXCloudWatchClient($awsKey, $awsSecret, $awsRegion);
   }
 
   /**

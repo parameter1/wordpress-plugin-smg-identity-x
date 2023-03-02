@@ -1,11 +1,10 @@
 <?php
 
-// require_once(__DIR__.'/aws/CloudWatch/CloudWatchClient.php'); // @todo
 require_once(__DIR__.'/aws/aws-autoloader.php');
 
 use Aws\CloudWatch\CloudWatchClient;
 
-class IdentityXCloudWatch {
+class IdentityXCloudWatchClient {
   private $client;
   public function __construct($key = null, $secret = null, $region = 'us-east-2') {
     if ($key && $secret) {
