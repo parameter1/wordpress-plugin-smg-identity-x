@@ -26,6 +26,7 @@ function identityx_options() {
   foreach ([
     'identityx_apiHost',
     'identityx_apiKey',
+    'identityx_aws_sqs_queue_url',
     'identityx_aws_access_key_id',
     'identityx_aws_secret_access_key',
     'identityx_aws_region'
@@ -38,6 +39,7 @@ function identityx_options() {
 
   $apiHost = get_option('identityx_apiHost');
   $apiKey = get_option('identityx_apiKey');
+  $aws_sqs_queue_url = get_option('identityx_aws_sqs_queue_url');
   $aws_access_key_id = get_option('identityx_aws_access_key_id');
   $aws_secret_access_key = get_option('identityx_aws_secret_access_key');
   $aws_region = get_option('identityx_aws_region', 'us-east-2');
@@ -55,17 +57,22 @@ function identityx_options() {
       <form name="identityx_settings" method="post" action="">
         <div class="row">
           <label>
-            <strong>API host</strong>
+            <strong>API Gateway URL</strong>
             <input type="text" value="{$apiHost}" name="identityx_apiHost" placeholder="https://..." />
           </label>
         </div>
         <div class="row">
           <label>
             <strong>API key</strong>
-            <input type="text" value="{$apiKey}" name="identityx_apiKey" placeholder="f000fd-fd0dff0d-ffd0d0df" />
+            <input type="password" value="{$apiKey}" name="identityx_apiKey" placeholder="f000fd-fd0dff0d-ffd0d0df" />
           </label>
         </div>
-        <p class="lead">AWS Metric reporting</p>
+        <div class="row">
+          <label>
+            <strong>SQS Queue URL</strong>
+            <input type="text" value="{$aws_sqs_queue_url}" name="identityx_aws_sqs_queue_url" placeholder="https://..." />
+          </label>
+        </div>
         <div class="row">
           <label>
             <strong>AWS Access Key</strong>
@@ -75,7 +82,7 @@ function identityx_options() {
         <div class="row">
           <label>
             <strong>AWS Secret Access Key</strong>
-            <input type="text" value="{$aws_secret_access_key}" name="identityx_aws_secret_access_key" />
+            <input type="password" value="{$aws_secret_access_key}" name="identityx_aws_secret_access_key" />
           </label>
         </div>
         <div class="row">

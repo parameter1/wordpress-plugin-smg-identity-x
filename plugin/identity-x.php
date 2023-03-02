@@ -13,7 +13,7 @@ require_once(__DIR__.'/identity-x/hook-handler.php');
 
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
-$queueUrl = get_option('identityx_sqs_queue_url');
+$queueUrl = get_option('identityx_aws_sqs_queue_url');
 $awsConfig = [
   get_option('identityx_aws_access_key_id'),
   get_option('identityx_aws_secret_access_key'),
