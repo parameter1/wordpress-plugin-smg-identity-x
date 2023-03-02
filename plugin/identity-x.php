@@ -3,7 +3,7 @@
  * Plugin Name: IdentityX
  * Plugin URI: https://github.com/parameter1/smg-idx-wordpress/tree/master
  * Description: A plugin providing authentication support via the IdentityX platform
- * Version: 0.0.4
+ * Version: 0.0.5
  * Author: Parameter1 LLC
  * Author URI: https://parameter1.com
  */
@@ -13,6 +13,7 @@ require_once(__DIR__.'/identity-x/hook-handler.php');
 
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
+$queueUrl = get_option('identityx_sqs_queue_url');
 $awsConfig = [
   get_option('identityx_aws_access_key_id'),
   get_option('identityx_aws_secret_access_key'),
@@ -22,7 +23,7 @@ $awsConfig = [
 // Do nothing if no keys are present!
 if (!$apiKey) return;
 
-$handler = new IdentityXHooks($apiKey, $apiHost, $awsConfig);
+$handler = new IdentityXHooks($apiKey, $apiHost, $queueUrl, $awsConfig);
 
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 
@@ -47,3 +48,16 @@ add_action('template_redirect', function () use ($handler) {
   // include the hook handler
   $handler->handle($wp_query);
 });
+
+// Create cron interval
+add_filter('cron_schedules', function ($arr) {
+  $arr['every_minute'] = ['interval' => 60, 'display' => 'Every One Minute'];
+  return $arr;
+});
+
+// schedule event processing
+add_action('identityx_cron_hook', [$handler, 'process'], 1);
+
+if (!wp_next_scheduled('identityx_cron_hook')) {
+  wp_schedule_event(time(), 'every_minute', 'identityx_cron_hook', [] , true);
+}

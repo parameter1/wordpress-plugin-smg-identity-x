@@ -5,11 +5,13 @@ require_once(__DIR__.'/cloudwatch.php');
 class IdentityXHooks {
   private $apiKey;
   private $apiHost;
+  private $queueUrl;
   private $cloudwatch;
 
-  public function __construct($apiKey, $apiHost, array $awsConfig = []) {
+  public function __construct($apiKey, $apiHost, $queueUrl, array $awsConfig = []) {
     $this->apiHost = $apiHost;
     $this->apiKey = $apiKey;
+    $this->queueUrl = $queueUrl;
     list($awsKey, $awsSecret, $awsRegion) = $awsConfig;
     $this->cloudwatch = new IdentityXCloudWatch($awsKey, $awsSecret, $awsRegion);
   }
@@ -143,5 +145,12 @@ class IdentityXHooks {
     }
     // End the response
     exit;
+  }
+
+  /**
+   * Processes available entries in the configured SQS queue
+   */
+  public function process() {
+    error_log(sprintf('Handler processing from %s.', $this->queueUrl), E_USER_NOTICE);
   }
 }
