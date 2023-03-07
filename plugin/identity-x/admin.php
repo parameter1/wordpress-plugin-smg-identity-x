@@ -27,6 +27,7 @@ function identityx_options() {
     'identityx_apiHost',
     'identityx_apiKey',
     'identityx_idx_api_key',
+    'identityx_idx_app_id',
     'identityx_aws_sqs_queue_url',
     'identityx_aws_access_key_id',
     'identityx_aws_secret_access_key',
@@ -41,6 +42,7 @@ function identityx_options() {
   $apiHost = get_option('identityx_apiHost');
   $apiKey = get_option('identityx_apiKey');
   $idx_api_key = get_option('identityx_idx_api_key');
+  $idx_app_id = get_option('identityx_idx_app_id');
   $aws_sqs_queue_url = get_option('identityx_aws_sqs_queue_url');
   $aws_access_key_id = get_option('identityx_aws_access_key_id');
   $aws_secret_access_key = get_option('identityx_aws_secret_access_key');
@@ -73,6 +75,12 @@ function identityx_options() {
           <label>
             <strong>IdentityX API Key</strong>
             <input type="password" value="{$idx_api_key}" name="identityx_idx_api_key" placeholder="eyJhbGci..." />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            <strong>IdentityX Application ID</strong>
+            <input type="text" value="{$idx_app_id}" name="identityx_idx_app_id" placeholder="62a20ab439..." />
           </label>
         </div>
         <div class="row">

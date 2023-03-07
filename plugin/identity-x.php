@@ -14,6 +14,7 @@ require_once(__DIR__.'/identity-x/hook-handler.php');
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost');
 $idxApiKey = get_option('identityx_idx_api_key');
+$idxAppId = get_option('identityx_idx_app_id');
 $queueUrl = get_option('identityx_aws_sqs_queue_url');
 $awsConfig = [
   get_option('identityx_aws_access_key_id'),
@@ -24,7 +25,7 @@ $awsConfig = [
 // Do nothing if no keys are present!
 if (!$apiKey || !$idxApiKey) return;
 
-$handler = new IdentityXHooks($apiKey, $apiHost, $queueUrl, $idxApiKey, $awsConfig);
+$handler = new IdentityXHooks($apiKey, $apiHost, $queueUrl, $idxApiKey, $idxAppId, $awsConfig);
 
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 
