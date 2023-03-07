@@ -18,15 +18,16 @@ class IdentityXHooks {
     $queueUrl,
     $idxApiKey,
     $appId,
-    array $awsConfig = []
+    $awsAccessKeyId,
+    $awsSecretAccessKey,
+    $awsRegion,
   ) {
     $this->apiHost = $apiHost;
     $this->apiKey = $apiKey;
     $this->appId = $appId;
     $this->idxApiKey = $idxApiKey;
-    list($awsKey, $awsSecret, $awsRegion) = $awsConfig;
-    $this->cloudwatch = new IdentityXCloudWatchClient($awsKey, $awsSecret, $awsRegion);
-    $this->sqs = new IdentityXSqsClient($awsKey, $awsSecret, $queueUrl, $awsRegion);
+    $this->cloudwatch = new IdentityXCloudWatchClient($awsAccessKeyId, $awsSecretAccessKey, $awsRegion);
+    $this->sqs = new IdentityXSqsClient($awsAccessKeyId, $awsSecretAccessKey, $queueUrl, $awsRegion);
   }
 
   /**

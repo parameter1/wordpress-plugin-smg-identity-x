@@ -3,7 +3,7 @@
  * Plugin Name: IdentityX
  * Plugin URI: https://github.com/parameter1/smg-idx-wordpress/tree/master
  * Description: A plugin providing authentication support via the IdentityX platform
- * Version: 0.0.5
+ * Version: 0.1.0
  * Author: Parameter1 LLC
  * Author URI: https://parameter1.com
  */
@@ -16,17 +16,25 @@ $apiHost = get_option('identityx_apiHost');
 $idxApiKey = get_option('identityx_idx_api_key');
 $idxAppId = get_option('identityx_idx_app_id');
 $queueUrl = get_option('identityx_aws_sqs_queue_url');
-$awsConfig = [
-  get_option('identityx_aws_access_key_id'),
-  get_option('identityx_aws_secret_access_key'),
-  get_option('identityx_aws_region', 'us-east-2')
-];
+$awsAccessKeyId = get_option('identityx_aws_access_key_id');
+$awsSecretAccessKey = get_option('identityx_aws_secret_access_key');
+$awsRegion = get_option('identityx_aws_region', 'us-east-2');
 
 // Do nothing if no keys are present!
 if (!$apiKey || !$idxApiKey) return;
 
-$handler = new IdentityXHooks($apiKey, $apiHost, $queueUrl, $idxApiKey, $idxAppId, $awsConfig);
+$handler = new IdentityXHooks(
+  $apiKey,
+  $apiHost,
+  $queueUrl,
+  $idxApiKey,
+  $idxAppId,
+  $awsAccessKeyId,
+  $awsSecretAccessKey,
+  $awsRegion,
+);
 
+add_action('profile_update', [$handler, 'dispatch'], 10, 3);
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 
 // Create IdentityX hook target
@@ -53,7 +61,7 @@ add_action('template_redirect', function () use ($handler) {
 
 // Create cron interval
 add_filter('cron_schedules', function ($arr) {
-  $arr['every_minute'] = ['interval' => 60, 'display' => 'Every One Minute'];
+  $arr['every_second'] = ['interval' => 1, 'display' => 'Every One Second'];
   return $arr;
 });
 
@@ -61,5 +69,5 @@ add_filter('cron_schedules', function ($arr) {
 add_action('identityx_cron_hook', [$handler, 'process'], 1);
 
 if (!wp_next_scheduled('identityx_cron_hook')) {
-  wp_schedule_event(time(), 'every_minute', 'identityx_cron_hook', [] , true);
+  wp_schedule_event(time(), 'every_second', 'identityx_cron_hook', [] , true);
 }
