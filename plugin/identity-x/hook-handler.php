@@ -5,13 +5,14 @@ require_once(__DIR__.'/client-cloudwatch.php');
 class IdentityXHooks {
   private $apiKey;
   private $apiHost;
-  private $queueUrl;
+  private $idxApiKey;
   private $cloudwatch;
+  private $sqs;
 
-  public function __construct($apiKey, $apiHost, $queueUrl, array $awsConfig = []) {
+  public function __construct($apiKey, $apiHost, $queueUrl, $idxApiKey, array $awsConfig = []) {
     $this->apiHost = $apiHost;
     $this->apiKey = $apiKey;
-    $this->queueUrl = $queueUrl;
+    $this->idxApiKey = $idxApiKey;
     list($awsKey, $awsSecret, $awsRegion) = $awsConfig;
     $this->cloudwatch = new IdentityXCloudWatchClient($awsKey, $awsSecret, $awsRegion);
   }

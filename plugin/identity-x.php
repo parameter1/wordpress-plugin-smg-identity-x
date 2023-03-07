@@ -12,7 +12,8 @@ require_once(__DIR__.'/identity-x/admin.php');
 require_once(__DIR__.'/identity-x/hook-handler.php');
 
 $apiKey = get_option('identityx_apiKey');
-$apiHost = get_option('identityx_apiHost', 'https://www.labpulse.com');
+$apiHost = get_option('identityx_apiHost');
+$idxApiKey = get_option('identityx_idx_api_key');
 $queueUrl = get_option('identityx_aws_sqs_queue_url');
 $awsConfig = [
   get_option('identityx_aws_access_key_id'),
@@ -21,9 +22,9 @@ $awsConfig = [
 ];
 
 // Do nothing if no keys are present!
-if (!$apiKey) return;
+if (!$apiKey || !$idxApiKey) return;
 
-$handler = new IdentityXHooks($apiKey, $apiHost, $queueUrl, $awsConfig);
+$handler = new IdentityXHooks($apiKey, $apiHost, $queueUrl, $idxApiKey, $awsConfig);
 
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 
