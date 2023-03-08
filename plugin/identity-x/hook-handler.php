@@ -112,7 +112,14 @@ class IdentityXHooks {
         switch (gettype($field)) {
           case 'array':
             if ($field['field_type'] === 'multiselectbox') {
-              $obj[$key] = unserialize($field['field_data']);
+              $val = unserialize($field['field_data']);
+              if (is_array($val)) {
+                $val = array_map(function ($v) {
+                  // Decode values (ampersands/etc)
+                  return html_entity_decode($v);
+                }, $val);
+              }
+              $obj[$key] = $val;
             } else {
               $obj[$key] = $field['field_data'];
             }
