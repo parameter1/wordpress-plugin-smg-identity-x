@@ -3,7 +3,7 @@
  * Plugin Name: IdentityX
  * Plugin URI: https://github.com/parameter1/smg-idx-wordpress/tree/master
  * Description: A plugin providing authentication support via the IdentityX platform
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: Parameter1 LLC
  * Author URI: https://parameter1.com
  */
@@ -38,7 +38,7 @@ add_action('profile_update', [$handler, 'dispatch'], 10, 3);
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 
 // Create IdentityX hook target
-$pattern = '^hook/identity-x/([a-z0-9-]+)';
+$pattern = '^api/identity-x/user$';
 
 add_action('init', function() use ($pattern) {
   add_rewrite_tag('%idxHook%', '([^&]+)');
@@ -56,7 +56,22 @@ add_action('template_redirect', function () use ($handler) {
   global $wp_query;
   if (!isset($wp_query->query_vars['idxHook'])) return;
   // include the hook handler
-  $handler->handle($wp_query);
+
+  header('content-type: application/json; charset=utf8');
+  try {
+    $payload = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($payload['emails']) || !count($payload['emails'])) {
+      throw new \InvalidArgumentException('Emails property must be specified as an array!');
+    }
+    $handler->userApi($payload['emails']);
+  } catch (\InvalidArgumentException $e) {
+    http_response_code(400);
+    echo json_encode(['error' => $e->getMessage()]);
+  } catch (\Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => $e->getMessage()]);
+  }
+  exit;
 });
 
 // Create cron interval

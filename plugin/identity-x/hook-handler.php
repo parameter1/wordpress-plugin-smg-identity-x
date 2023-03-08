@@ -88,6 +88,46 @@ class IdentityXHooks {
   }
 
   /**
+   * Ensures the request has the proper API key, and returns a 401 JSON response if not.
+   */
+  public function validateAuth() {
+    if ($_SERVER['HTTP_AUTHORIZATION'] !== sprintf('Bearer %s', $this->apiKey)) {
+      if (!headers_sent()) header('content-type: application/json; charset=utf8');
+      http_response_code(401);
+      echo json_encode(['error' => 'API key missing or invalid.']);
+      exit;
+    }
+  }
+
+  /**
+   * Handles incoming requests to retrieve user data
+   */
+  public function userApi($emails) {
+    $this->validateAuth();
+    $payload = array_map(function($email) {
+      $user = get_user_by('email', $email);
+      $data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
+      return array_reduce(array_keys($data), function ($obj, $key) use ($data) {
+        $field = $data[$key];
+        switch (gettype($field)) {
+          case 'array':
+            if ($field['field_type'] === 'multiselectbox') {
+              $obj[$key] = unserialize($field['field_data']);
+            } else {
+              $obj[$key] = $field['field_data'];
+            }
+            break;
+          default:
+            $obj[$key] = $field;
+            break;
+        }
+        return $obj;
+      }, []);
+    }, $emails);
+    echo json_encode($payload);
+  }
+
+  /**
    *
    */
   private function retrieveUser($id) {
