@@ -100,6 +100,46 @@ class IdentityXHooks {
   }
 
   /**
+   * Registers the user API
+   */
+  public function registerUserApi() {
+    $pattern = '^api/identity-x/user$';
+    $arg = 'idxUserApi';
+
+    add_action('init', function() use ($pattern, $arg) {
+      add_rewrite_tag(sprintf('%%%s%%', $arg), '([^&]+)');
+      add_rewrite_rule($pattern, sprintf('index.php?%s=$matches[1]', $arg), 'top');
+    });
+
+    // Flush rewrite rules if the route doesn't exist yet.
+    add_action('wp_loaded', function () use ($pattern) {
+      $rules = get_option('rewrite_rules');
+      if (!isset($rules[$pattern])) flush_rewrite_rules();
+    });
+
+    // The hook handler
+    add_action('template_redirect', function () use ($arg) {
+      global $wp_query;
+      if (!isset($wp_query->query_vars[$arg])) return;
+      header('content-type: application/json; charset=utf8');
+      try {
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload['emails']) || !count($payload['emails'])) {
+          throw new \InvalidArgumentException('Emails property must be specified as an array!');
+        }
+        $this->userApi($payload['emails']);
+      } catch (\InvalidArgumentException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+      } catch (\Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+      }
+      exit;
+    });
+  }
+
+  /**
    * Handles incoming requests to retrieve user data
    */
   public function userApi($emails) {

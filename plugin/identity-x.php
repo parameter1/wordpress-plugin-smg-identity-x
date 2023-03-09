@@ -37,42 +37,12 @@ $handler = new IdentityXHooks(
 add_action('profile_update', [$handler, 'dispatch'], 10, 3);
 add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 
-// Create IdentityX hook target
-$pattern = '^api/identity-x/user$';
-
-add_action('init', function() use ($pattern) {
-  add_rewrite_tag('%idxHook%', '([^&]+)');
-  add_rewrite_rule($pattern, 'index.php?idxHook=$matches[1]', 'top');
-});
-
-// Flush rewrite rules if the route doesn't exist yet.
-add_action('wp_loaded', function () use ($pattern) {
-  $rules = get_option('rewrite_rules');
-  if (!isset($rules[$pattern])) flush_rewrite_rules();
-});
-
-// The hook handler
-add_action('template_redirect', function () use ($handler) {
-  global $wp_query;
-  if (!isset($wp_query->query_vars['idxHook'])) return;
-  // include the hook handler
-
-  header('content-type: application/json; charset=utf8');
-  try {
-    $payload = json_decode(file_get_contents('php://input'), true);
-    if (!is_array($payload['emails']) || !count($payload['emails'])) {
-      throw new \InvalidArgumentException('Emails property must be specified as an array!');
-    }
-    $handler->userApi($payload['emails']);
-  } catch (\InvalidArgumentException $e) {
-    http_response_code(400);
-    echo json_encode(['error' => $e->getMessage()]);
-  } catch (\Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
-  }
-  exit;
-});
+/**
+ * Register the API routes.
+ * You *must* edit/save permalink settings in WP admin for routes to take effect!
+ * @see /wp-admin/options-permalink.php
+ */
+$handler->registerUserApi();
 
 // Create cron interval
 add_filter('cron_schedules', function ($arr) {
