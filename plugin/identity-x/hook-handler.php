@@ -100,12 +100,12 @@ class IdentityXHooks {
   }
 
   /**
-   * Registers the user API
+   * Registers an API route
+   * @param {string}   $pattern   The regexp pattern to register
+   * @param {string}   $arg       The internal WP var to use
+   * @param {callable} $handler   The function to call with the request payload.
    */
-  public function registerUserApi() {
-    $pattern = '^api/identity-x/user$';
-    $arg = 'idxUserApi';
-
+  protected function registerApi($pattern, $arg, callable $handler) {
     add_action('init', function() use ($pattern, $arg) {
       add_rewrite_tag(sprintf('%%%s%%', $arg), '([^&]+)');
       add_rewrite_rule($pattern, sprintf('index.php?%s=$matches[1]', $arg), 'top');
@@ -118,16 +118,13 @@ class IdentityXHooks {
     });
 
     // The hook handler
-    add_action('template_redirect', function () use ($arg) {
+    add_action('template_redirect', function () use ($arg, $handler) {
       global $wp_query;
       if (!isset($wp_query->query_vars[$arg])) return;
       header('content-type: application/json; charset=utf8');
       try {
         $payload = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($payload['emails']) || !count($payload['emails'])) {
-          throw new \InvalidArgumentException('Emails property must be specified as an array!');
-        }
-        $this->userApi($payload['emails']);
+        call_user_func($handler, $payload);
       } catch (\InvalidArgumentException $e) {
         http_response_code(400);
         echo json_encode(['error' => $e->getMessage()]);
@@ -136,6 +133,18 @@ class IdentityXHooks {
         echo json_encode(['error' => $e->getMessage()]);
       }
       exit;
+    });
+  }
+
+  /**
+   * Registers the user API
+   */
+  public function registerUserApi() {
+    return $this->registerApi('^api/identity-x/user$', 'idxUserApi', function($payload) {
+      if (!is_array($payload['emails']) || !count($payload['emails'])) {
+        throw new \InvalidArgumentException('Emails property must be specified as an array!');
+      }
+      return $this->userApi($payload['emails']);
     });
   }
 
@@ -172,6 +181,10 @@ class IdentityXHooks {
       }, []);
     }, $emails);
     echo json_encode($payload);
+  }
+
+  public function registerIngestApi() {
+
   }
 
   /**
