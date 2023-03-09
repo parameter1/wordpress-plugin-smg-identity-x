@@ -32,6 +32,8 @@ class IdentityXHooks {
 
   /**
    * Sends outgoing webhook to IdentityX when user details change
+   * @todo push directly to cloudwatch, no apigateway
+   * @todo use guzzle
    */
   public function dispatch($user_id) {
     try {
@@ -135,22 +137,27 @@ class IdentityXHooks {
    */
   protected function ingestApi(array $records = []) {
     $batchItemFailures = [];
+    $errors = [];
     foreach ($records as $record) {
       try {
         $messageId = $record['messageId'];
         $body = json_decode($record['body'], true);
         $id = $body['id'];
         $email = $body['email'];
+        // @todo handle ids/externalId for changed emails?
         if (!$id) throw new InvalidArgumentException('IdentityX id must be specified!');
         if (!$email) throw new InvalidArgumentException('Email must be specified!');
         $this->upsertUser($id, $email);
       } catch (\Exception $e) {
         error_log(sprintf('Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
         $batchItemFailures[] = $messageId;
+        $errors[] = $e->getMessage();
       }
     }
     return json_encode([
-      'batchItemFailures' => $batchItemFailures
+      'name' => 'user-update',
+      'batchItemFailures' => $batchItemFailures,
+      'errors' => $errors,
     ]);
   }
 
@@ -271,15 +278,13 @@ class IdentityXHooks {
       }
     }
 
-    // @todo how to bypass hooks to prevent recursion?
-
     // Update core fields
     if (count($updates['wp']) >= 1) wp_update_user(array_merge(['ID' => $user->ID], $updates['wp']));
 
     // Set custom fields to user
     foreach ($updates['xp'] as $key => $value) {
       $saved = xprofile_set_field_data($key, $user->ID, $value);
-      if (!$saved) throw new InvalidArgumentException(sprintf('The field "%s" could not be saved with value "%s"!', $key, $value));
+      if (!$saved) throw new InvalidArgumentException(sprintf('The field "%s" could not be saved with value "%s"!', $key, var_export($value, true)));
     }
 
     return $user;
