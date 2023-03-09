@@ -45,7 +45,7 @@ add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
 $handler->registerUserApi();
 $handler->registerIngestApi();
 
-// Create cron interval
+// Create cron interval @todo remove all of this
 add_filter('cron_schedules', function ($arr) {
   $arr['every_second'] = ['interval' => 1, 'display' => 'Every One Second'];
   return $arr;

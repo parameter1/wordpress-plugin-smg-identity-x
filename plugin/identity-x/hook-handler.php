@@ -56,38 +56,6 @@ class IdentityXHooks {
   }
 
   /**
-   * Processes available entries in the configured SQS queue
-   */
-  public function process() {
-    $result = $this->sqs->retrieve();
-    $messages = is_array($result->get('Messages')) ? $result->get('Messages') : [];
-    foreach ($messages as $message) {
-      try {
-        $this->handle($message);
-        $this->sqs->delete($message);
-      } catch (\Exception $e) {
-        error_log(sprintf('Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
-      }
-    }
-  }
-
-  /**
-   * Handles incoming requests to update user data from IdentityX
-   */
-  public function handle($message) {
-    $payload = json_decode($message['Body'], true);
-
-    // @todo look up by external id for changed emails
-    if (!array_key_exists('email', $payload) || !$payload['email']) throw new InvalidArgumentException('Email must be specified!');
-
-    $found = get_user_by('email', $payload['email']);
-    $user = $this->retrieveUser($payload['id']);
-
-    if ($found) return $this->updateUser($user, $found);
-    return $this->createUser($payload);
-  }
-
-  /**
    * Ensures the request has the proper API key, and returns a 401 JSON response if not.
    */
   protected function validateAuth() {
@@ -165,8 +133,25 @@ class IdentityXHooks {
   /**
    * Handles incoming requests from Amazon SQS/Lambda function to update Wordpress user data.
    */
-  protected function ingestApi($payload) {
-    throw new \BadMethodCallException(__METHOD__.' not yet implemented.');
+  protected function ingestApi(array $records = []) {
+    $batchItemFailures = [];
+    foreach ($records as $record) {
+      try {
+        $messageId = $record['messageId'];
+        $body = json_decode($record['body'], true);
+        $id = $body['id'];
+        $email = $body['email'];
+        if (!$id) throw new InvalidArgumentException('IdentityX id must be specified!');
+        if (!$email) throw new InvalidArgumentException('Email must be specified!');
+        $this->upsertUser($id, $email);
+      } catch (\Exception $e) {
+        error_log(sprintf('Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
+        $batchItemFailures[] = $messageId;
+      }
+    }
+    return json_encode([
+      'batchItemFailures' => $batchItemFailures
+    ]);
   }
 
   /**
@@ -205,7 +190,7 @@ class IdentityXHooks {
   }
 
   /**
-   *
+   * Retrieves a user by id from the IdentityX API
    */
   private function retrieveUser($id) {
     global $idxQueryUserById; // @import GQL query
@@ -229,9 +214,12 @@ class IdentityXHooks {
   }
 
   /**
-   *
+   * Updates the user, creating first if not present.
    */
-  private function updateUser($payload, $user) {
+  private function upsertUser($id, $email) {
+    $payload = $this->retrieveUser($id);
+    $user = get_user_by('email', $email);
+    if (!$user) $user = $this->createUser($payload);
     $updates = [
       'wp' => [],
       'xp' => [],
@@ -310,6 +298,6 @@ class IdentityXHooks {
       'user_registered' => (new \DateTime())->format('Y-m-d H:i:s'),
     ]);
     $user = get_user_by('ID', $userId);
-    return updateUser($payload, $user);
+    return $user;
   }
 }
