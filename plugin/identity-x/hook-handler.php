@@ -90,7 +90,7 @@ class IdentityXHooks {
   /**
    * Ensures the request has the proper API key, and returns a 401 JSON response if not.
    */
-  public function validateAuth() {
+  protected function validateAuth() {
     if ($_SERVER['HTTP_AUTHORIZATION'] !== sprintf('Bearer %s', $this->apiKey)) {
       if (!headers_sent()) header('content-type: application/json; charset=utf8');
       http_response_code(401);
@@ -121,10 +121,12 @@ class IdentityXHooks {
     add_action('template_redirect', function () use ($arg, $handler) {
       global $wp_query;
       if (!isset($wp_query->query_vars[$arg])) return;
+      $this->validateAuth();
       header('content-type: application/json; charset=utf8');
       try {
         $payload = json_decode(file_get_contents('php://input'), true);
-        call_user_func($handler, $payload);
+        $response = call_user_func($handler, $payload);
+        if ($response) echo $response;
       } catch (\InvalidArgumentException $e) {
         http_response_code(400);
         echo json_encode(['error' => $e->getMessage()]);
@@ -133,6 +135,18 @@ class IdentityXHooks {
         echo json_encode(['error' => $e->getMessage()]);
       }
       exit;
+    });
+  }
+
+  /**
+   * Registers the ingest API
+   */
+  public function registerIngestApi() {
+    return $this->registerApi('^api/identity-x/ingest$', 'idxIngestApi', function($payload) {
+      if (!is_array($payload) || !count($payload)) {
+        throw new \InvalidArgumentException('Records must be sent as an array!');
+      }
+      return $this->ingestApi($payload);
     });
   }
 
@@ -149,9 +163,16 @@ class IdentityXHooks {
   }
 
   /**
+   * Handles incoming requests from Amazon SQS/Lambda function to update Wordpress user data.
+   */
+  protected function ingestApi($payload) {
+    throw new \BadMethodCallException(__METHOD__.' not yet implemented.');
+  }
+
+  /**
    * Handles incoming requests to retrieve user data
    */
-  public function userApi($emails) {
+  protected function userApi($emails) {
     $this->validateAuth();
     $payload = array_map(function($email) {
       $user = get_user_by('email', $email);
@@ -180,11 +201,7 @@ class IdentityXHooks {
         return $obj;
       }, []);
     }, $emails);
-    echo json_encode($payload);
-  }
-
-  public function registerIngestApi() {
-
+    return json_encode($payload);
   }
 
   /**

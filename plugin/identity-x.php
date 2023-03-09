@@ -43,6 +43,7 @@ add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
  * @see /wp-admin/options-permalink.php
  */
 $handler->registerUserApi();
+$handler->registerIngestApi();
 
 // Create cron interval
 add_filter('cron_schedules', function ($arr) {
