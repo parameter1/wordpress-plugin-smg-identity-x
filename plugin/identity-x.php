@@ -3,7 +3,7 @@
  * Plugin Name: IdentityX
  * Plugin URI: https://github.com/parameter1/smg-idx-wordpress/tree/master
  * Description: A plugin providing authentication support via the IdentityX platform
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: Parameter1 LLC
  * Author URI: https://parameter1.com
  */

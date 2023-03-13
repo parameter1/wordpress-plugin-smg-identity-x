@@ -9,7 +9,7 @@ $idxQueryUserById = 'query WPICLE_UserById($id: String!) {
 		familyName
 		city
 		countryCode
-		regionCode
+		region { name }
 		organization
 		organizationTitle
 		phoneNumber

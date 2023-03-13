@@ -267,11 +267,11 @@ class IdentityXHooks {
         $updates['wp'][$builtInFields[$fieldName]] = $value;
       } elseif (array_key_exists($fieldName, $mappedFields)) {
         $updates['xp'][$mappedFields[$fieldName]] = $value;
-      } elseif ($fieldName === 'regionCode') {
+      } elseif ($fieldName === 'region') {
         if ($payload['countryCode'] === 'US') {
-          $updates['xp']['Region'] = $value;
+          $updates['xp']['Region'] = $value['name'];
         } else {
-          $updates['xp']['Region Non-U.S'] = $value;
+          $updates['xp']['Region Non-U.S'] = $value['name'];
         }
       } else {
         throw new InvalidArgumentException(sprintf('Unknown field "%s"!', $fieldName));
