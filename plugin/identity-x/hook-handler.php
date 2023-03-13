@@ -252,6 +252,7 @@ class IdentityXHooks {
       'Subspecialty'      => 'Specialties',
     ];
     foreach ($payload as $fieldName => $value) {
+      if (!$value) continue;
       if ($fieldName === 'id') continue;
       if ($fieldName === 'email') continue;
       if ($fieldName === 'customSelectFieldAnswers') {
@@ -269,9 +270,9 @@ class IdentityXHooks {
         $updates['xp'][$mappedFields[$fieldName]] = $value;
       } elseif ($fieldName === 'region') {
         if ($payload['countryCode'] === 'US') {
-          $updates['xp']['Region'] = $value['name'];
+          $updates['xp']['State/Region'] = $value['name'];
         } else {
-          $updates['xp']['Region Non-U.S'] = $value['name'];
+          $updates['xp']['State/Region Non-U.S'] = $value['name'];
         }
       } else {
         throw new InvalidArgumentException(sprintf('Unknown field "%s"!', $fieldName));
