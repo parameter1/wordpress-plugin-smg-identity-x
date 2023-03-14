@@ -7,56 +7,78 @@ if [ -z "$REGION"]; then
 fi
 
 usage() {
-  printf "\nUsage: $0 <create|update|delete> <stack-name>\n"
-  printf "This script requires the AWS CLI with an \`wordpress-identityx\` profile configured!\n"
+  printf "\nUsage: $0 <create|update|delete> <tenant> <production|staging|development>\n"
+  printf "This script requires the AWS CLI with \`idx-icle-<tenant>-<environment>\` profiles configured!\n"
   exit 1
 }
 
 [[ -z "$2" ]] && usage
-STACK_NAME="$2"
+STACK_NAME="event-queues"
+
+case "$2" in
+  drb)
+    TENANT="drb"
+    ;;
+  *)
+    usage
+esac
+
+case "$3" in
+  production)
+    ENV="production"
+    ;;
+  staging)
+    ENV="staging"
+    ;;
+  development)
+    ENV="development"
+    ;;
+  *)
+    usage
+esac
 
 
 createBucket() {
   set +e
   echo "Creating S3 Bucket..."
-  aws --profile wordpress-identityx s3api create-bucket \
-    --bucket p1cfn-wordpress-identityx \
+  aws --profile idx-icle-$TENANT-$ENV s3api create-bucket \
+    --bucket p1cfn-idx-icle-$TENANT-$ENV \
     --create-bucket-configuration LocationConstraint=$REGION
   set -e
 }
 deleteBucket() {
   echo "Deleting S3 Bucket..."
-  aws --profile wordpress-identityx s3 rm s3://p1cfn-wordpress-identityx --recursive
-  aws --profile wordpress-identityx s3api delete-bucket \
-    --bucket p1cfn-wordpress-identityx
+  aws --profile idx-icle-$TENANT-$ENV s3 rm s3://p1cfn-idx-icle-$TENANT-$ENV --recursive
+  aws --profile idx-icle-$TENANT-$ENV s3api delete-bucket \
+    --bucket p1cfn-idx-icle-$TENANT-$ENV
 }
 
 updateTemplates() {
-  aws --profile wordpress-identityx s3 sync \
-    .aws s3://p1cfn-wordpress-identityx/
+  aws --profile idx-icle-$TENANT-$ENV s3 sync \
+    .cloudformation s3://p1cfn-idx-icle-$TENANT-$ENV/
 }
 
 deleteStack() {
   echo "Deleting $STACK_NAME CloudFormation stack..."
-  aws --profile wordpress-identityx cloudformation delete-stack \
+  aws --profile idx-icle-$TENANT-$ENV cloudformation delete-stack \
     --stack-name $STACK_NAME \
     --region $REGION
   echo "Waiting for the stack to be deleted, this may take a few minutes..."
-  aws --profile wordpress-identityx cloudformation wait stack-delete-complete \
+  aws --profile idx-icle-$TENANT-$ENV cloudformation wait stack-delete-complete \
     --stack-name $STACK_NAME \
     --region $REGION
 }
 createStack() {
   echo "Creating $STACK_NAME CloudFormation stack..."
-  aws --profile wordpress-identityx cloudformation create-stack \
+  aws --profile idx-icle-$TENANT-$ENV cloudformation create-stack \
     --stack-name $STACK_NAME \
     --region $REGION \
-    --template-url https://s3.$REGION.amazonaws.com/p1cfn-wordpress-identityx/cfn-$STACK_NAME.template \
+    --template-url https://s3.$REGION.amazonaws.com/p1cfn-idx-icle-$TENANT-$ENV/$STACK_NAME.template \
     --capabilities CAPABILITY_NAMED_IAM
   set +e
   echo "Waiting for the stack to be created, this may take a few minutes..."
   echo "See the progress at: https://$REGION.console.aws.amazon.com/cloudformation/home?region=$REGION#/stacks"
-  aws --profile wordpress-identityx cloudformation wait stack-create-complete \
+  aws --profile idx-icle-$TENANT-$ENV cloudformation wait stack-create-complete \
     --stack-name $STACK_NAME \
     --region $REGION
   RESULT=$(echo $?)
@@ -69,14 +91,14 @@ createStack() {
 }
 updateStack() {
   echo "Updating $STACK_NAME CloudFormation stack..."
-  aws --profile wordpress-identityx cloudformation update-stack \
+  aws --profile idx-icle-$TENANT-$ENV cloudformation update-stack \
     --stack-name $STACK_NAME \
     --region $REGION \
-    --template-url https://s3.$REGION.amazonaws.com/p1cfn-wordpress-identityx/cfn-$STACK_NAME.template \
+    --template-url https://s3.$REGION.amazonaws.com/p1cfn-idx-icle-$TENANT-$ENV/$STACK_NAME.template \
     --capabilities CAPABILITY_NAMED_IAM
   echo "Waiting for the stack to be updated, this may take a few minutes..."
   echo "See the progress at: https://$REGION.console.aws.amazon.com/cloudformation/home?region=$REGION#/stacks"
-  aws --profile wordpress-identityx cloudformation wait stack-update-complete \
+  aws --profile idx-icle-$TENANT-$ENV cloudformation wait stack-update-complete \
     --stack-name $STACK_NAME \
     --region $REGION
 }
