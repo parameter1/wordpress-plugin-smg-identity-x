@@ -55,6 +55,68 @@ class IdentityXHooks {
     } catch (\Exception $e) {
       $this->cloudwatch->failure('dispatch', $e);
     }
+
+    // Set the user's role, if all required fields are present.
+    if ($this->userHasFields($user)) {
+      $user->add_role('communitymember');
+    }
+  }
+
+  protected function userHasFields($user) {
+    $data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
+
+    // standard fields
+    foreach ([
+      'First Name',
+      'Last Name',
+      'Nickname',
+      'Organization',
+      // 'Organization Title',
+      'Country',
+      'City',
+      // 'Mobile Phone',
+      // 'Postal Code',
+      'Organization Type',
+      'Profession',
+    ] as $key) {
+      if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
+        echo "Missing ".$key;
+        return false;
+      }
+    }
+
+    // Multi-value fields
+    foreach([
+      'Specialties',
+      'Technologies',
+    ] as $key) {
+      if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
+        echo "Missing ".$key;
+        return false;
+      }
+      $val = unserialize($data[$key]['field_data']);
+      if (!is_array($val) || !count($val)) {
+        echo "Bad val" . $key . $data[$key]['field_data'];
+        return false;
+      }
+    }
+
+    // Region
+    if ($data['Country']['field_data'] = 'US') {
+      $key = 'State/Region';
+      if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
+        echo "missing us state/region";
+        return false;
+      }
+    } else {
+      $key = 'State/Region Non-U.S';
+      if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
+        echo "missing non-us state/region";
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
