@@ -38,25 +38,30 @@ case "$3" in
     usage
 esac
 
+s3BucketName=p1cfn-idx-icle-$TENANT-$ENV
+
 
 createBucket() {
   set +e
   echo "Creating S3 Bucket..."
   aws --profile idx-icle-$TENANT-$ENV s3api create-bucket \
-    --bucket p1cfn-idx-icle-$TENANT-$ENV \
+    --bucket $s3BucketName \
     --create-bucket-configuration LocationConstraint=$REGION
   set -e
 }
 deleteBucket() {
   echo "Deleting S3 Bucket..."
-  aws --profile idx-icle-$TENANT-$ENV s3 rm s3://p1cfn-idx-icle-$TENANT-$ENV --recursive
+  aws --profile idx-icle-$TENANT-$ENV s3 rm s3://$s3BucketName --recursive
   aws --profile idx-icle-$TENANT-$ENV s3api delete-bucket \
-    --bucket p1cfn-idx-icle-$TENANT-$ENV
+    --bucket $s3BucketName
 }
 
 updateTemplates() {
+  pushd .aws
+  zip -r lambda.event-processor.js.zip lambda.event-processor.js
+  popd
   aws --profile idx-icle-$TENANT-$ENV s3 sync \
-    .aws s3://p1cfn-idx-icle-$TENANT-$ENV/
+    .aws s3://$s3BucketName/
 }
 
 deleteStack() {
@@ -72,7 +77,9 @@ deleteStack() {
 createStack() {
   echo "Creating $STACK_NAME CloudFormation stack..."
   aws --profile idx-icle-$TENANT-$ENV cloudformation create-stack \
-    --stack-name $STACK_NAME --region $REGION --template-body $TEMPLATE_BODY
+    --stack-name $STACK_NAME --region $REGION --template-body $TEMPLATE_BODY \
+    --parameters ParameterKey=S3BucketLocation,ParameterValue=$s3BucketName \
+    --capabilities CAPABILITY_NAMED_IAM
   set +e
   echo "Waiting for the stack to be created, this may take a few minutes..."
   echo "See the progress at: https://$REGION.console.aws.amazon.com/cloudformation/home?region=$REGION#/stacks"
@@ -89,7 +96,9 @@ createStack() {
 updateStack() {
   echo "Updating $STACK_NAME CloudFormation stack..."
   aws --profile idx-icle-$TENANT-$ENV cloudformation update-stack \
-    --stack-name $STACK_NAME --region $REGION --template-body $TEMPLATE_BODY
+    --stack-name $STACK_NAME --region $REGION --template-body $TEMPLATE_BODY \
+    --parameters ParameterKey=S3BucketLocation,ParameterValue=$s3BucketName \
+    --capabilities CAPABILITY_NAMED_IAM
   echo "Waiting for the stack to be updated, this may take a few minutes..."
   echo "See the progress at: https://$REGION.console.aws.amazon.com/cloudformation/home?region=$REGION#/stacks"
   aws --profile idx-icle-$TENANT-$ENV cloudformation wait stack-update-complete \
