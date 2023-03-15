@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 set -e
 
 REGION="$AWS_REGION"
@@ -14,6 +14,7 @@ usage() {
 
 [[ -z "$2" ]] && usage
 STACK_NAME="event-queues"
+TEMPLATE_BODY=$(cat .aws/cfn-event-queues.template | jq . -c)
 
 case "$2" in
   drb)
@@ -55,7 +56,7 @@ deleteBucket() {
 
 updateTemplates() {
   aws --profile idx-icle-$TENANT-$ENV s3 sync \
-    .cloudformation s3://p1cfn-idx-icle-$TENANT-$ENV/
+    .aws s3://p1cfn-idx-icle-$TENANT-$ENV/
 }
 
 deleteStack() {
@@ -71,16 +72,12 @@ deleteStack() {
 createStack() {
   echo "Creating $STACK_NAME CloudFormation stack..."
   aws --profile idx-icle-$TENANT-$ENV cloudformation create-stack \
-    --stack-name $STACK_NAME \
-    --region $REGION \
-    --template-url https://s3.$REGION.amazonaws.com/p1cfn-idx-icle-$TENANT-$ENV/$STACK_NAME.template \
-    --capabilities CAPABILITY_NAMED_IAM
+    --stack-name $STACK_NAME --region $REGION --template-body $TEMPLATE_BODY
   set +e
   echo "Waiting for the stack to be created, this may take a few minutes..."
   echo "See the progress at: https://$REGION.console.aws.amazon.com/cloudformation/home?region=$REGION#/stacks"
   aws --profile idx-icle-$TENANT-$ENV cloudformation wait stack-create-complete \
-    --stack-name $STACK_NAME \
-    --region $REGION
+    --stack-name $STACK_NAME  --region $REGION
   RESULT=$(echo $?)
   set -e
   if [ $RESULT -ne 0 ]; then
@@ -92,15 +89,11 @@ createStack() {
 updateStack() {
   echo "Updating $STACK_NAME CloudFormation stack..."
   aws --profile idx-icle-$TENANT-$ENV cloudformation update-stack \
-    --stack-name $STACK_NAME \
-    --region $REGION \
-    --template-url https://s3.$REGION.amazonaws.com/p1cfn-idx-icle-$TENANT-$ENV/$STACK_NAME.template \
-    --capabilities CAPABILITY_NAMED_IAM
+    --stack-name $STACK_NAME --region $REGION --template-body $TEMPLATE_BODY
   echo "Waiting for the stack to be updated, this may take a few minutes..."
   echo "See the progress at: https://$REGION.console.aws.amazon.com/cloudformation/home?region=$REGION#/stacks"
   aws --profile idx-icle-$TENANT-$ENV cloudformation wait stack-update-complete \
-    --stack-name $STACK_NAME \
-    --region $REGION
+    --stack-name $STACK_NAME --region $REGION
 }
 
 case "$1" in
