@@ -2,7 +2,7 @@
 const { PROCESSOR_API_KEY, PROCESSOR_ENDPOINT } = process.env;
 const { log } = console;
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const { Records = [] } = event;
   const r = await fetch(PROCESSOR_ENDPOINT, {
     method: 'post',

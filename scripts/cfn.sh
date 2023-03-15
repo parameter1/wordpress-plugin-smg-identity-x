@@ -57,8 +57,8 @@ deleteBucket() {
 }
 
 updateTemplates() {
-  pushd .aws
-  zip -r lambda.event-processor.js.zip lambda.event-processor.js
+  pushd .aws/lambda/event-processor
+  zip -r index.js.zip index.js
   popd
   aws --profile idx-icle-$TENANT-$ENV s3 sync \
     .aws s3://$s3BucketName/
