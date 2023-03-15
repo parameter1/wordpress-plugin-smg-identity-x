@@ -26,3 +26,4 @@ reference
 plugins
 themes
 .DS_Store
+/.aws/**/*.zip
