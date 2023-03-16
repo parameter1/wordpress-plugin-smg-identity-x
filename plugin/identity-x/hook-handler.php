@@ -253,7 +253,7 @@ class IdentityXHooks {
             break;
         }
         return $obj;
-      }, []);
+      }, ['roles' => is_array($user->roles) ? $user->roles : []]);
     }, $emails);
     return json_encode($payload);
   }
