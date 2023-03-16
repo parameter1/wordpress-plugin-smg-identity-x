@@ -3,7 +3,7 @@
  * Plugin Name: IdentityX
  * Plugin URI: https://github.com/parameter1/smg-idx-wordpress/tree/master
  * Description: A plugin providing authentication support via the IdentityX platform
- * Version: 0.2.4
+ * Version: 1.0.0
  * Author: Parameter1 LLC
  * Author URI: https://parameter1.com
  */
@@ -44,16 +44,3 @@ add_action('xprofile_updated_profile', [$handler, 'dispatch'], 10, 3);
  */
 $handler->registerUserApi();
 $handler->registerIngestApi();
-
-// Create cron interval @todo remove all of this
-add_filter('cron_schedules', function ($arr) {
-  $arr['every_second'] = ['interval' => 1, 'display' => 'Every One Second'];
-  return $arr;
-});
-
-// schedule event processing
-add_action('identityx_cron_hook', [$handler, 'process'], 1);
-
-if (!wp_next_scheduled('identityx_cron_hook')) {
-  wp_schedule_event(time(), 'every_second', 'identityx_cron_hook', [] , true);
-}

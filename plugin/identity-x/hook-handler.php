@@ -80,7 +80,7 @@ class IdentityXHooks {
       'Profession',
     ] as $key) {
       if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        echo "Missing ".$key;
+        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -91,12 +91,12 @@ class IdentityXHooks {
       'Technologies',
     ] as $key) {
       if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        echo "Missing ".$key;
+        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
       $val = unserialize($data[$key]['field_data']);
       if (!is_array($val) || !count($val)) {
-        echo "Bad val" . $key . $data[$key]['field_data'];
+        error_log(sprintf('User %s bad value "%s" for %s, not applying role.', $user->ID, $data[$key]['field_data'], $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -105,13 +105,13 @@ class IdentityXHooks {
     if ($data['Country']['field_data'] = 'US') {
       $key = 'State/Region';
       if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        echo "missing us state/region";
+        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     } else {
       $key = 'State/Region Non-U.S';
       if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        echo "missing non-us state/region";
+        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     }
