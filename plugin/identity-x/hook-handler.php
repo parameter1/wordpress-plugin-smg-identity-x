@@ -80,7 +80,7 @@ class IdentityXHooks {
       'Profession',
     ] as $key) {
       if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -91,12 +91,12 @@ class IdentityXHooks {
       'Technologies',
     ] as $key) {
       if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
       $val = unserialize($data[$key]['field_data']);
       if (!is_array($val) || !count($val)) {
-        error_log(sprintf('User %s bad value "%s" for %s, not applying role.', $user->ID, $data[$key]['field_data'], $key), E_USER_NOTICE);
+        error_log(sprintf('IdX-ICLE: WP user %s bad value "%s" for %s, not applying role.', $user->ID, $data[$key]['field_data'], $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -105,13 +105,13 @@ class IdentityXHooks {
     if ($data['Country']['field_data'] = 'US') {
       $key = 'State/Region';
       if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     } else {
       $key = 'State/Region Non-U.S';
       if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('User %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -211,7 +211,7 @@ class IdentityXHooks {
         if (!$email) throw new InvalidArgumentException('Email must be specified!');
         $this->upsertUser($id, $email);
       } catch (\Exception $e) {
-        error_log(sprintf('Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
+        error_log(sprintf('IdX-ICLE: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
         $batchItemFailures[] = $messageId;
         $errors[] = $e->getMessage();
       }
