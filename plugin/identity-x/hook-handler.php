@@ -59,6 +59,7 @@ class IdentityXHooks {
     // Set the user's role, if all required fields are present.
     if ($this->userHasFields($user)) {
       $user->add_role('communitymember');
+      $user->remove_role('accountholder');
     }
   }
 
