@@ -33,24 +33,22 @@ class IdentityXHooks {
   /**
    * Sends outgoing webhook to IdentityX when user details change
    * @todo push directly to cloudwatch, no apigateway
-   * @todo use guzzle
    */
   public function dispatch($user_id) {
     try {
-      // @todo set role for full profile when everything is updated ** if not already set **
       $user = get_user_by('ID', $user_id);
-      $ch = curl_init(sprintf('%s/prod/enqueue-idx', $this->apiHost));
-      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        'id' => $user_id,
-        'email' => $user->user_email,
-      ]));
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "content-type: application/json",
-        sprintf("x-api-key: %s", $this->apiKey),
+      $client = new GuzzleHttp\Client();
+      $response = $client->request('POST', sprintf('%s/prod/enqueue-idx', $this->apiHost), [
+        'headers' => [
+          'content-type'  => 'application/json',
+          'x-api-key'     => $this->apiKey,
+        ],
+        'body' => json_encode([
+          'id' => $user_id,
+          'email' => $user->user_email,
+        ]),
       ]);
-      curl_exec($ch);
-      curl_close($ch);
+      error_log(sprintf('IdentityX: Dispatched SQS message for email %s', $user->user_email), E_USER_NOTICE);
       $this->cloudwatch->success('dispatch');
     } catch (\Exception $e) {
       $this->cloudwatch->failure('dispatch', $e);
@@ -81,7 +79,7 @@ class IdentityXHooks {
       'Profession',
     ] as $key) {
       if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdentityX: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -92,12 +90,12 @@ class IdentityXHooks {
       'Technologies',
     ] as $key) {
       if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdentityX: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
       $val = unserialize($data[$key]['field_data']);
       if (!is_array($val) || !count($val)) {
-        error_log(sprintf('IdX-ICLE: WP user %s bad value "%s" for %s, not applying role.', $user->ID, $data[$key]['field_data'], $key), E_USER_NOTICE);
+        error_log(sprintf('IdentityX: WP user %s bad value "%s" for %s, not applying role.', $user->ID, $data[$key]['field_data'], $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -106,13 +104,13 @@ class IdentityXHooks {
     if ($data['Country']['field_data'] = 'US') {
       $key = 'State/Region';
       if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdentityX: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     } else {
       $key = 'State/Region Non-U.S';
       if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
-        error_log(sprintf('IdX-ICLE: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
+        error_log(sprintf('IdentityX: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
     }
@@ -211,11 +209,11 @@ class IdentityXHooks {
         $body = json_decode($record['body'], true);
         $id = $body['id'];
         $email = $body['email'];
-        $oldEmail = $body['oldEmail'];
+        $oldEmail = array_key_exists('oldEmail', $body) ? $body['oldEmail'] : null;
         if (!$id) throw new InvalidArgumentException('IdentityX id must be specified!');
         if (!$email) throw new InvalidArgumentException('Email must be specified!');
 
-        $emails[$email] = is_array($emails[$email]) ? $emails[$email] : [];
+        $emails[$email] = array_key_exists($email, $emails) ? $emails[$email] : [];
         array_push($emails[$email], $messageId);
 
         if ($oldEmail) {
@@ -223,7 +221,7 @@ class IdentityXHooks {
           $this->changeEmail($email, $oldEmail);
         }
       } catch (\Exception $e) {
-        error_log(sprintf('IdX-ICLE: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
+        error_log(sprintf('IdentityX: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
         array_push($batchItemFailures, ...$emails[$email]);
         $errors[] = $e->getMessage();
       }
@@ -240,14 +238,12 @@ class IdentityXHooks {
       }
     }
 
-    var_dump($emails);
-
     // Now process the updates
     foreach ($emails as $email => $messageIds) {
       try {
         $this->upsertUser($id, $email);
       } catch (\Exception $e) {
-        error_log(sprintf('IdX-ICLE: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
+        error_log(sprintf('IdentityX: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
         array_push($batchItemFailures, ...$messageIds);
         $errors[] = $e->getMessage();
       }
@@ -266,6 +262,7 @@ class IdentityXHooks {
     $this->validateAuth();
     $payload = array_map(function($email) {
       $user = get_user_by('email', $email);
+      if (!$user) return null;
       $data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
       return array_reduce(array_keys($data), function ($obj, $key) use ($data) {
         $field = $data[$key];
@@ -291,6 +288,8 @@ class IdentityXHooks {
         return $obj;
       }, ['roles' => is_array($user->roles) ? $user->roles : []]);
     }, $emails);
+    // Filter out invalid users
+    $payload = array_filter($payload, function ($v) { return $v !== null; });
     return json_encode($payload);
   }
 
@@ -320,7 +319,7 @@ class IdentityXHooks {
 
   private function changeEmail($to, $from) {
     $user = get_user_by('email', $from);
-    if (!$user) throw new Exception(sprintf('IdX-ICLE: Change email: could not find user for email "%s"!', $from));
+    if (!$user) throw new Exception(sprintf('IdentityX: Change email: could not find user for email "%s"!', $from));
     wp_update_user(['ID' => $user->ID, 'user_email' => $to]);
   }
 
