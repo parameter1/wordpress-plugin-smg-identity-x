@@ -201,19 +201,54 @@ class IdentityXHooks {
   protected function ingestApi(array $records = []) {
     $batchItemFailures = [];
     $errors = [];
+    $emails = [];
+    $changedEmails = [];
+
+    // Extract message IDs, emails, and changed emails
     foreach ($records as $record) {
       try {
         $messageId = $record['messageId'];
         $body = json_decode($record['body'], true);
         $id = $body['id'];
         $email = $body['email'];
-        // @todo handle ids/externalId for changed emails?
+        $oldEmail = $body['oldEmail'];
         if (!$id) throw new InvalidArgumentException('IdentityX id must be specified!');
         if (!$email) throw new InvalidArgumentException('Email must be specified!');
+
+        $emails[$email] = is_array($emails[$email]) ? $emails[$email] : [];
+        array_push($emails[$email], $messageId);
+
+        if ($oldEmail) {
+          $changedEmails[$email] = $oldEmail;
+          $this->changeEmail($email, $oldEmail);
+        }
+      } catch (\Exception $e) {
+        error_log(sprintf('IdX-ICLE: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
+        array_push($batchItemFailures, ...$emails[$email]);
+        $errors[] = $e->getMessage();
+      }
+    }
+
+    // Merge message ids for old/new emails
+    foreach ($changedEmails as $email => $oldEmail) {
+      if (array_key_exists($oldEmail, $emails)) {
+        // Replace the key with the new email to process the updates.
+        $oldUpdates = $emails[$oldEmail];
+        $newUpdates = array_key_exists($email, $emails) ? $emails[$email] : [];
+        unset($emails[$oldEmail]);
+        $emails[$email] = array_merge($oldUpdates, $newUpdates);
+      }
+    }
+
+    var_dump($emails);
+
+    // Now process the updates
+    foreach ($emails as $email => $messageIds) {
+      try {
         $this->upsertUser($id, $email);
       } catch (\Exception $e) {
         error_log(sprintf('IdX-ICLE: Unable to process message: %s', $e->getMessage()), E_USER_WARNING);
-        $batchItemFailures[] = $messageId;
+        array_push($batchItemFailures, ...$messageIds);
         $errors[] = $e->getMessage();
       }
     }
@@ -281,6 +316,12 @@ class IdentityXHooks {
       return $json['data']['appUserById'];
     }
     return [];
+  }
+
+  private function changeEmail($to, $from) {
+    $user = get_user_by('email', $from);
+    if (!$user) throw new Exception(sprintf('IdX-ICLE: Change email: could not find user for email "%s"!', $from));
+    wp_update_user(['ID' => $user->ID, 'user_email' => $to]);
   }
 
   /**
