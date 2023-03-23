@@ -37,18 +37,8 @@ class IdentityXHooks {
   public function dispatch($user_id) {
     try {
       $user = get_user_by('ID', $user_id);
-      $client = new GuzzleHttp\Client();
-      $client->request('POST', sprintf('%s/prod/enqueue-idx', $this->apiHost), [
-        'headers' => [
-          'content-type'  => 'application/json',
-          'x-api-key'     => $this->apiKey,
-        ],
-        'body' => json_encode([
-          'id' => $user_id,
-          'email' => $user->user_email,
-        ]),
-      ]);
-      error_log(sprintf('IdentityX: Dispatched SQS message for email %s', $user->user_email), E_USER_NOTICE);
+      $r = $this->sqs->send($user_id, $user->user_email);
+      error_log(sprintf('IdentityX: Dispatched SQS message %s for email %s', $r->get('MessageId'), $user->user_email), E_USER_NOTICE);
       $this->cloudwatch->success('dispatch');
     } catch (\Exception $e) {
       $this->cloudwatch->failure('dispatch', $e);

@@ -30,6 +30,16 @@ class IdentityXSqsClient {
   /**
    *
    */
+  public function send($id, $email) {
+    return $this->client->sendMessage([
+      'QueueUrl'    => $this->queue,
+      'MessageBody' => json_encode(['id' => $id, 'email' => $email]),
+    ]);
+  }
+
+  /**
+   *
+   */
   public function delete($message) {
     return $this->client->deleteMessage([
       'QueueUrl'      => $this->queue,
