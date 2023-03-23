@@ -33,7 +33,7 @@ class IdentityXSqsClient {
   public function send($id, $email) {
     return $this->client->sendMessage([
       'QueueUrl'    => $this->queue,
-      'MessageBody' => json_encode(['id' => $id, 'email' => $email]),
+      'MessageBody' => json_encode(['id' => $id, 'email' => $email, 'source' => 'wp-icle']),
     ]);
   }
 

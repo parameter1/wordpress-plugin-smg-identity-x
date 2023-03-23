@@ -91,15 +91,15 @@ class IdentityXHooks {
     }
 
     // Region
-    if ($data['Country']['field_data'] = 'US') {
+    if ($data['Country']['field_data'] == 'US') {
       $key = 'State/Region';
-      if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
+      if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
         error_log(sprintf('IdentityX: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
-    } else {
-      $key = 'State/Region Non-U.S';
-      if (!array_key_exists('State/Region', $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
+    } elseif ($data['Country']['field_data'] == 'CA') {
+      $key = 'State/Region CA';
+      if (!array_key_exists($key, $data) || !array_key_exists('field_data', $data[$key]) || !$data[$key]['field_data']) {
         error_log(sprintf('IdentityX: WP user %s missing %s, not applying role.', $user->ID, $key), E_USER_NOTICE);
         return false;
       }
@@ -366,7 +366,7 @@ class IdentityXHooks {
         if ($payload['countryCode'] === 'US') {
           $updates['xp']['State/Region'] = $value['name'];
         } else {
-          $updates['xp']['State/Region Non-U.S'] = $value['name'];
+          $updates['xp']['State/Region CA'] = $value['name'];
         }
       } else {
         throw new InvalidArgumentException(sprintf('Unknown field "%s"!', $fieldName));
