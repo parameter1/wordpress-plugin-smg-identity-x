@@ -38,7 +38,7 @@ class IdentityXHooks {
     try {
       $user = get_user_by('ID', $user_id);
       $client = new GuzzleHttp\Client();
-      $response = $client->request('POST', sprintf('%s/prod/enqueue-idx', $this->apiHost), [
+      $client->request('POST', sprintf('%s/prod/enqueue-idx', $this->apiHost), [
         'headers' => [
           'content-type'  => 'application/json',
           'x-api-key'     => $this->apiKey,
@@ -328,6 +328,7 @@ class IdentityXHooks {
    */
   private function upsertUser($id, $email) {
     $payload = $this->retrieveUser($id);
+    if (!$payload) throw new Exception(sprintf('Unable to load IdentityX user by ID %s!', $id));
     $user = get_user_by('email', $email);
     if (!$user) $user = $this->createUser($payload);
     $updates = [
