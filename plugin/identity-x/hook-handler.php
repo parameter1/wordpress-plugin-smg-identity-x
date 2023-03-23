@@ -186,7 +186,7 @@ class IdentityXHooks {
    */
   public function registerUserApi() {
     return $this->registerApi('^api/identity-x/user$', 'idxUserApi', function($payload) {
-      if (!is_array($payload['emails']) || !count($payload['emails'])) {
+      if (!array_key_exists('emails', $payload) || !is_array($payload['emails']) || !count($payload['emails'])) {
         throw new \InvalidArgumentException('Emails property must be specified as an array!');
       }
       return $this->userApi($payload['emails']);
