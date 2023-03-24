@@ -279,7 +279,7 @@ class IdentityXHooks {
       }, ['roles' => is_array($user->roles) ? $user->roles : []]);
     }, $emails);
     // Filter out invalid users
-    $payload = array_filter($payload, function ($v) { return $v !== null; });
+    $payload = array_values(array_filter($payload, function ($v) { return $v !== null; }));
     return json_encode($payload);
   }
 
