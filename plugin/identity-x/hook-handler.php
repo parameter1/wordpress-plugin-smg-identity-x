@@ -379,7 +379,14 @@ class IdentityXHooks {
     // Set custom fields to user
     foreach ($updates['xp'] as $key => $value) {
       $saved = xprofile_set_field_data($key, $user->ID, $value);
-      if (!$saved) throw new InvalidArgumentException(sprintf('The field "%s" could not be saved with value "%s"!', $key, var_export($value, true)));
+      if (!$saved) throw new InvalidArgumentException(sprintf('IdentityX: The field "%s" for user "%s" could not be saved with value "%s"!', $key, $user->ID, var_export($value, true)));
+    }
+
+    // Set the user's role, if all required fields are present.
+    $user = get_user_by('ID', $user->ID);
+    if ($this->userHasFields($user)) {
+      $user->add_role('communitymember');
+      $user->remove_role('accountholder');
     }
 
     return $user;
