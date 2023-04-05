@@ -11,7 +11,7 @@
 require_once(__DIR__.'/identity-x/admin.php');
 require_once(__DIR__.'/identity-x/hook-handler.php');
 
-$enabled = (bool) get_option('identityx_enabled', true);
+$enabled = (bool) get_option('identityx_enabled');
 $apiKey = get_option('identityx_apiKey');
 $apiHost = get_option('identityx_apiHost');
 $idxApiKey = get_option('identityx_idx_api_key');

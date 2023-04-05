@@ -47,7 +47,7 @@ function identityx_options() {
     echo "<div class=\"updated\"><p><strong>" . __('settings saved.', 'menu-test' ) . "</strong></p></div>";
   }
 
-  $enabled = (bool) get_option('identityx_enabled', true);
+  $enabled = (bool) get_option('identityx_enabled');
   $apiHost = get_option('identityx_apiHost');
   $apiKey = get_option('identityx_apiKey');
   $idx_api_key = get_option('identityx_idx_api_key');
