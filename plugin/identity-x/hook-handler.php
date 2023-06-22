@@ -30,6 +30,40 @@ class IdentityXHooks {
     $this->sqs = new IdentityXSqsClient($awsAccessKeyId, $awsSecretAccessKey, $queueUrl, $awsRegion);
   }
 
+  protected function getUserDetails($user_id)
+  {
+	if($user_id!=0)
+	{
+		$user = new WP_User( $user_id);
+		$profile_data['user_login']    = $user->user_login;
+		$profile_data['user_nicename'] = $user->user_nicename;
+		$profile_data['user_email']    = $user->user_email;
+		$profile_data['First Name']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('First Name',$user_id);
+		$profile_data['Last Name']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Last Name',$user_id);
+		$profile_data['Nickname']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Nickname',$user_id);
+		$profile_data['Country']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Country',$user_id) ;
+
+		if($profile_data['Country']['field_data'] =='US')
+			$profile_data['State/Region']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('State/Region',$user_id);
+
+		if($profile_data['Country']['field_data'] =='CA')
+			$profile_data['State/Region CA']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('State/Region CA',$user_id) ;
+
+		$profile_data['Mobile Phone']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Mobile Phone',$user_id);
+		$profile_data['Postal Code']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Postal Code',$user_id);
+		$profile_data['OrganizationTitle']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('OrganizationTitle',$user_id);
+		$profile_data['Organization Type']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Organization Type',$user_id);
+		$profile_data['Organization']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Organization',$user_id);
+		$profile_data['City']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('City',$user_id);
+		$profile_data['Profession']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Profession',$user_id);
+		$profile_data['Technologies']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Technologies',$user_id);
+		$profile_data['Specialties']['field_data'] = BP_XProfile_ProfileData::get_value_byfieldname('Specialties',$user_id);
+		return $profile_data;
+	}else{
+		return false;
+	}
+  }
+
   /**
    * Sends outgoing webhook to IdentityX when user details change
    * @todo push directly to cloudwatch, no apigateway
@@ -52,7 +86,8 @@ class IdentityXHooks {
   }
 
   protected function userHasFields($user) {
-    $data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
+    //$data = BP_XProfile_ProfileData::get_all_for_user($user->ID);// Old BuddyBoss function
+    $data = $this->getUserDetails($user->ID);
 
     // standard fields
     foreach ([
@@ -253,7 +288,8 @@ class IdentityXHooks {
     $payload = array_map(function($email) {
       $user = get_user_by('email', $email);
       if (!$user) return null;
-      $data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
+     // $data = BP_XProfile_ProfileData::get_all_for_user($user->ID); //Old method
+      $data = $this->getUserDetails($user->ID);
       return array_reduce(array_keys($data), function ($obj, $key) use ($data) {
         $field = $data[$key];
         switch (gettype($field)) {
