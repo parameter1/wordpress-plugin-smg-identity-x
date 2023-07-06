@@ -67,6 +67,14 @@ class IdentityXHooks {
         'field_data' => BP_XProfile_ProfileData::get_value_byfieldname('State/Region CA', $user_id),
       ];
     }
+
+    // If present, null out false values for IdentityX.
+    foreach ($profile_data as &$value) {
+      if (is_array($value) && array_key_exists('field_data', $value)) {
+        if ($value['field_data'] === false) $value['field_data'] = null;
+      }
+    }
+
     return $profile_data;
   }
 
